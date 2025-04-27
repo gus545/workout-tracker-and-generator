@@ -1,16 +1,18 @@
-from helpers import initialize_notion_client
 from dotenv import load_dotenv
+from notion_client import Client
+import logging
+import log
 import os
 import json
 
 class API_Manager:
     def __init__(self):
-        self.notion_client = initialize_notion_client()
+        self.notion_client = self.initialize_notion_client()
         self.exercise_ids = {}
         self._load_exercise_ids()
         
 
-    def establish_connection(client):
+    def establish_connection(self, client):
         """
         Establishes a connection to the Notion API and validates the API key.
 
@@ -24,13 +26,16 @@ class API_Manager:
             print(f"Error establishing connection: {e}")
             raise
 
-    def initialize_notion_client():
+    def initialize_notion_client(self):
         """
         Initializes and returns a Notion client for interacting with the Notion API.
 
         Returns:
             Client: An instance of the Notion client.
         """
+        # Load environment variables from .env file
+        load_dotenv()
+
         api_key = os.getenv("NOTION_API_KEY")
         if not api_key:
             raise ValueError("API key is required to initialize the Notion client. Ensure NOTION_API_KEY is set in the .env file.")
@@ -38,7 +43,7 @@ class API_Manager:
 
         client = Client(auth=api_key, logger=log.initialize_logger(), log_level = logging.DEBUG)
 
-        establish_connection(client)
+        self.establish_connection(client)
 
         return client
 
@@ -58,11 +63,17 @@ class API_Manager:
             response = self.notion_client.databases.query(
                 database_id=os.environ["DBID_WORKOUTLOG"],
                 filter={
-                    "property": "End Time",
-                    "date": {
-                        "on_or_after": start_date,
-                        "on_or_before": end_date
-                    }
+                    "and": [
+                        {"property": "Date",
+                        "date": {
+                            "on_or_after": start_date.isoformat(),
+
+                        }},
+                        {"property": "Date",
+                        "date": {
+                            "on_or_before": end_date.isoformat()
+                        }}
+                    ]
                 }
             )
             return response["results"]
