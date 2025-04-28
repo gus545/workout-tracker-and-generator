@@ -1,0 +1,7 @@
+dotenv==0.9.9
+notion-client==2.3.0
+requests==2.25.1
+pandas==2.2.3
+tinydb==4.8.2
+pydantic==2.11.3
+pydantic_core==2.33.1
