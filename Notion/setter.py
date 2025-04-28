@@ -52,22 +52,19 @@ class Setter:
                 print(f"Updated 1RM for {lift}.")
             else:
                 print(f"No 1RM entry found for {lift}.")
-    def update_all_1RMs(self):
+    def update_all_1RMs(self, exercise_ids : dict):
         """
         Function to update all 1RMs in Notion.
         
         Args:
-            None
+            exercise_ids (dict): A dictionary containing exercise names and their corresponding IDs.
         
         Returns:
             None
         """
-        # Load the list of exercises from the JSON file
-        with open(os.path.join(os.path.dirname(__file__), "exercise_ids.json"), "r") as file:
-            exercise_ids = json.load(file)
 
         # Iterate through each exercise and update its 1RM
-        for exercise_name, exercise_id in exercise_ids.items():
+        for exercise_name in exercise_ids.keys():
             one_rm_entry = self.get1RMEntry(exercise_name)
             if one_rm_entry:
                 self.set_1RM_reference(one_rm_entry)
