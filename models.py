@@ -1,4 +1,5 @@
 from pydantic import BaseModel, model_validator
+from typing import Optional
 from typing import List
 
 class WorkoutSet(BaseModel):
@@ -9,7 +10,8 @@ class WorkoutSet(BaseModel):
         weight (float): The weight lifted in the set.
         reps (int): The number of repetitions performed in the set.
     """
-    weight: float
+    workout_name : str
+    weight: Optional[float] = None
     reps: int
     exercise_id: str
     set_number: int
