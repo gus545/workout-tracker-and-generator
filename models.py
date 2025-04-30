@@ -2,13 +2,42 @@ from pydantic import BaseModel, model_validator
 from typing import Optional
 from typing import List
 
+class Exercise(BaseModel):
+    """
+    Class representing an exercise.
+
+    Attributes:
+        name (str): The name of the exercise.
+        id (str): The ID of the exercise.
+        category (str): The category of the exercise.
+        equipment (str): The equipment used for the exercise.
+        force (str): The type of force applied in the exercise.
+        level (str): The level of difficulty of the exercise.
+        mechanic (str): The mechanic of the exercise.
+        primary_muscles (List[str]): A list of primary muscles targeted by the exercise.
+        secondary_muscles (List[str]): A list of secondary muscles targeted by the exercise.
+    """
+    name: str
+    id: str
+    category: str
+    equipment: str
+    force: str
+    level: str
+    mechanic: str
+    primary_muscles: List[str]
+    secondary_muscles: List[str]
+
 class WorkoutSet(BaseModel):
     """
     Class representing a set of an exercise.
-    
+
     Attributes:
-        weight (float): The weight lifted in the set.
+        workout_name (str): The name of the workout.
+        weight (Optional[float]): The weight used in the set.
         reps (int): The number of repetitions performed in the set.
+        exercise_id (str): The ID of the exercise.
+        set_number (int): The number of the set in the workout.
+        date (str): The date of the workout.
     """
     workout_name : str
     weight: Optional[float] = None
