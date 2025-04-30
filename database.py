@@ -1,6 +1,7 @@
 from tinydb import TinyDB, Query
 from datetime import datetime
 from typing import Optional, List, Union
+from pydantic import BaseModel
 
 # Database manager class DatabaseManager:
 class DatabaseManager:
@@ -21,27 +22,31 @@ class DatabaseManager:
         """
         return self.db.table('metadata')
 
-    def create_table(self, table_name: str, composite_key: Optional[List[str]] = None):
+    def create_table(self, table_name: str, model : BaseModel, composite_key: Optional[List[str]] = None):
         """
         Creates a new table in the database.
         """
         if table_name not in self.db.tables():
             self.db.table(table_name)
-            self.initialize_metadata(table_name, composite_key)
+            self.initialize_metadata(table_name, model, composite_key)
         else:
             print(f"Table {table_name} already exists.")
 
-    def initialize_metadata(self, table_name : str, composite_key : list):
+    def initialize_metadata(self, table_name : str, model : BaseModel, composite_key : list):
         """
         Creates metadata for a table if it doesn't exist.
         """
         Metadata = Query()
 
+        # Set default composite key to all properties of the model if not provided
+        if not composite_key:
+            composite_key = list(model.model_json_schema()['properties'].keys())
+
         if not self.metadata_table.contains(Metadata.table_name == table_name):
             self.metadata_table.insert({
                 'table_name' : table_name,
+                'table_model': model.model_json_schema(),
                 'composite_key': composite_key,
-                'unique_key': composite_key,
                 'created_at': datetime.now().isoformat(),
                 'updated_at': datetime.now().isoformat()
                 })
