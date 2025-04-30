@@ -51,6 +51,7 @@ class Fetcher:
         try:
             results = []
             next_cursor = None
+            
             while True:
                 response = self.notion_client.databases.query(
                     database_id=database_id,
@@ -63,3 +64,49 @@ class Fetcher:
             return results
         except Exception as e:
             raise RuntimeError(f"Failed to fetch pages: {e}")
+    def get1RMEntry(self, exercise_id):
+            """
+            Function to get the 1RM entry for a given exercise from Notion.
+            
+            Args:
+                exercise_name (str): The name of the exercise.
+            
+            Returns:
+                dict: The 1RM entry details.
+            """
+            try:
+                response = self.notion_client.databases.query(
+                    database_id=os.environ["DBID_WORKOUTLOG"],
+                    filter={
+                        "and": [
+                            {
+                                "property": "Exercise Reference",
+                                "relation": {
+                                    "contains": exercise_id
+                                }
+                            },
+                            {
+                                "property": "End Time",
+                                "date": {
+                                    "on_or_after": "2025-01-01T00:00:00Z"
+                                }
+                            }
+                        ]
+                    },
+                    sorts=[
+                        {
+                            "property": "Estimated 1RM",
+                            "direction": "descending"
+                        }
+                    ],
+                    page_size=1
+                )
+                # Check if the query returned any results
+                if not response["results"]:
+                    return None  # Or raise an exception, depending on your use case
+
+                # Extract the first result
+                entry = response["results"][0]
+                return entry
+            except Exception as e:
+                raise RuntimeError(f"Failed to query 1RM entry: {e}")
