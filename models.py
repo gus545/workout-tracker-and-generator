@@ -1,8 +1,22 @@
 from pydantic import BaseModel, model_validator
 from typing import Optional
 from typing import List
+from abc import ABC, abstractmethod
 
-class Exercise(BaseModel):
+class KeyedModel(BaseModel):
+    """
+    Abstract base class for models with a composite key.
+    """
+    @abstractmethod
+    def get_composite_key():
+        """
+        Abstract method to get the composite key of the model.
+        """
+        pass
+
+
+
+class Exercise(KeyedModel):
     """
     Class representing an exercise.
 
@@ -27,7 +41,10 @@ class Exercise(BaseModel):
     primary_muscles: List[str]
     secondary_muscles: List[str]
 
-class WorkoutSet(BaseModel):
+    def get_composite_key():
+        return ['id']
+
+class WorkoutSet(KeyedModel):
     """
     Class representing a set of an exercise.
 
@@ -45,8 +62,11 @@ class WorkoutSet(BaseModel):
     exercise_id: str
     set_number: int
     date: str
+    page_id: str
+    def get_composite_key():
+        return ['date', 'set_number', 'exercise_id']
 
-class Workout(BaseModel):
+class Workout(KeyedModel):
     """
     Class representing a workout session.
     
