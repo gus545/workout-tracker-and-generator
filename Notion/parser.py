@@ -1,4 +1,45 @@
-from models import WorkoutSet, Exercise
+from models import KeyedModel, WorkoutSet, Exercise
+from functools import singledispatch
+from typing import Any, Iterable, Union
+
+def get_parsing_function(model: KeyedModel):
+    """
+    Function to get the parsing function based on the model type.
+
+    Args:
+        model (KeyedModel): The model to use for parsing.
+    
+    Returns:
+        function: The parsing function.
+    """
+    if model == WorkoutSet:
+        return parse_set_data
+    elif model == Exercise:
+        return parse_exercise_data
+    else:
+        raise ValueError("Unsupported model type")
+
+
+def parse_data(data: Union[Any, Iterable], model: KeyedModel) -> dict:
+    """
+    Function to parse data from a dictionary or an iterable using a specified model.
+
+    Args:
+        data (Union[Any, Iterable]): The data to parse.
+        model (KeyedModel): The model to use for parsing.
+    Returns:
+        dict: Parsed data.
+    """
+
+    # Get the parsing function based on the model type
+    parse_func = get_parsing_function(model)
+
+    if isinstance(data, dict):
+        return parse_func(data)
+    elif isinstance(data, Iterable):
+        return [parse_func(item) for item in data]
+
+
 
 def parse_set_data(data : dict) -> dict:
     """
@@ -18,7 +59,8 @@ def parse_set_data(data : dict) -> dict:
         "reps": set_data.get("Reps", {}).get("number"),
         "exercise_id": set_data.get("Exercise Reference", {}).get("relation", [{}])[0].get("id", {}),
         "set_number": set_data.get("Set #", {}).get("number"),
-        "date": data.get("properties", {}).get("Date", {}).get("date", {}).get("start")
+        "date": data.get("properties", {}).get("Date", {}).get("date", {}).get("start"),
+        "page_id": data.get("id")
     }
 
     set = WorkoutSet(**set_data)
@@ -71,24 +113,6 @@ def parse_exercise_data(data : dict) -> dict:
     exercise = Exercise(**exercise_data)
     return exercise.model_dump()
 
-def parse_pages(data : dict, parse_function) -> list:
-    """
-    Function to parse pages from a dictionary using a specified parsing function.
-    
-    Args:
-        data (dict): The data to parse.
-        parse_function (function): The function to use for parsing.
-    
-    Returns:
-        list: A list of parsed data.
-    """
-
-    parsed_data = []
-    for page in data:
-        parsed_data.append(parse_function(page))
-    
-    return parsed_data
-
     
 def extract_text(block: list[dict]) -> str:
         if block and isinstance(block[0], dict):
@@ -97,3 +121,21 @@ def extract_text(block: list[dict]) -> str:
 
 def extract_select(field: dict) -> str:
     return field.get("name") if field else "Not provided."
+
+def parse_database_info(data: dict) -> dict:
+    """
+    Function to parse database information from a dictionary.
+    
+    Args:
+        data (dict): The database data to parse.
+    
+    Returns:
+        dict: Parsed database information.
+    """
+    return {
+        "id": data.get("id"),
+        "title": data.get("title", [{}])[0].get("text", {}).get("content", ""),
+        "created_time": data.get("created_time"),
+        "last_edited_time": data.get("last_edited_time"),
+        "properties": data.get("properties")
+    }

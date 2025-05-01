@@ -37,6 +37,22 @@ class Fetcher:
             return response["results"]
         except Exception as e:
             raise RuntimeError(f"Failed to query sets: {e}")
+    
+    def fetch_database_info(self, database_id):
+        """
+        Fetches information about a Notion database.
+
+        Args:
+            database_id (str): The ID of the Notion database.
+
+        Returns:
+            dict: A dictionary containing the database information.
+        """
+        try:
+            response = self.notion_client.databases.retrieve(database_id=database_id)
+            return response
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch database info: {e}")
         
     def fetch_all_pages(self, database_id):
         """
@@ -110,3 +126,4 @@ class Fetcher:
                 return entry
             except Exception as e:
                 raise RuntimeError(f"Failed to query 1RM entry: {e}")
+            
