@@ -11,7 +11,37 @@ class Fetcher:
         self.notion_client = notion_client
         
 
-    def query_pages_in_date_range(self, database_id, start_date, end_date):
+    def query_pages_by_last_edited_time(self, db_id, last_edited_time: Union[str, datetime.date]):
+        """
+        Query pages in a Notion database by their last edited time.
+        """
+        logger.info(f"Querying pages edited since {last_edited_time}...")
+        try:
+            next_cursor = None
+            results = []
+            while True:
+                response = self.notion_client.databases.query(
+                    database_id=db_id,
+                    start_cursor=next_cursor,
+                    filter = {
+                        "timestamp": "last_edited_time",
+                        "last_edited_time": {
+                            "on_or_after": last_edited_time.isoformat() if isinstance(last_edited_time, datetime.date) else last_edited_time
+                        }
+                    }
+                )
+                results.extend(response["results"])
+                next_cursor = response.get("next_cursor")
+                if not next_cursor:
+                    break
+            return results
+        except Exception as e:
+            raise RuntimeError(f"Failed to query sets: {e}")
+
+
+    def query_pages_in_date_range(self, db_id, 
+                                  start_date: Union[str, datetime.date], 
+                                  end_date: Union[str, datetime.date] = datetime.date.today()):
         """
         Query pages in a Notion database within a specified Date property range.     
            
@@ -23,23 +53,31 @@ class Fetcher:
             list: A list of sets within the specified date range.
         """
         try:
-            response = self.notion_client.databases.query(
-                database_id=os.environ["DBID_WORKOUTLOG"],
-                filter={
-                    "and": [
-                        {"property": "Date",
-                        "date": {
-                            "on_or_after": start_date.isoformat(),
+            next_cursor = None
+            results = []
+            while True:
+                response = self.notion_client.databases.query(
+                    database_id=db_id,
+                    start_cursor=next_cursor,
+                    filter={
+                        "and": [
+                            {"property": "Date",
+                            "date": {
+                                "on_or_after": start_date.isoformat() if isinstance(start_date, datetime.date) else start_date
 
-                        }},
-                        {"property": "Date",
-                        "date": {
-                            "on_or_before": end_date.isoformat()
-                        }}
-                    ]
-                }
-            )
-            return response["results"]
+                            }},
+                            {"property": "Date",
+                            "date": {
+                                "on_or_before": end_date.isoformat() if isinstance(end_date, datetime.date) else end_date
+                            }}
+                        ]
+                    }
+                )
+                next_cursor = response.get("next_cursor")
+                if not next_cursor:
+                    break
+                results.extend(response["results"])
+            return results
         except Exception as e:
             raise RuntimeError(f"Failed to query sets: {e}")
     
