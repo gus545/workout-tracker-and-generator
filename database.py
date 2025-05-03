@@ -25,6 +25,79 @@ class DatabaseManager:
         """
         return self.db.table('metadata')
 
+    def update(self, table_name: str, entry: dict):
+        """
+        Updates an entry in the specified table in the database.
+
+        args: 
+            table_name (str): The name of the table to update.
+            entry (dict): The entry to update.
+
+        returns:
+            None
+        
+        raises: 
+            ValueError: If the entry is empty, table does not exist, or entry is missing key requirements.
+        """
+        if not entry:
+            raise ValueError("Entry cannot be empty.")
+        
+        table = self.get_table(table_name)
+
+    
+        key_fields = self.get_composite_key_values(table_name)
+        key_values = {field: entry[field] for field in key_fields}
+        try:
+            query = self.get_query_from_composite_key(key_values)
+        except ValueError as e:
+            raise
+             
+        if not query:
+            raise ValueError("Query is empty. Possibly missing key fields in entry.")
+        
+        table.update(entry, query)
+        logger.info(f"Updated entry in '{table_name}' table.")
+
+    def get_query_from_composite_key(self, key_values: dict):
+        query = None
+        for key, value in key_values.items():
+            if value is None:
+                raise ValueError(f"Missing value for composite key field: {key}")
+            condition = Query()[key] == value
+            query = condition if query is None else query & condition
+        return query
+        
+    def get_new_entries(self, entries : List[dict], table_name : str):
+        """
+        Retrieves new entries from the specified table in the database.
+        """
+        table = self.get_table(table_name)
+        db_pages = table.all()
+
+        composite_key_values = self.get_composite_key_values(table_name)
+        
+        # Get keys for input entries
+        input_keys = set()
+        for entry in entries:
+            input_keys.add(self.build_composite_key(composite_key_values, entry))
+
+        # Get keys for existing entries
+        existing_keys = set()
+        for page in db_pages:
+            existing_keys.add(self.build_composite_key(composite_key_values, page))
+
+
+        # Filter out input_keys from existing_keys
+        new_keys = existing_keys - input_keys
+
+        # Get new entries
+        new_entries = [entry for entry in db_pages if self.build_composite_key(composite_key_values, entry) in new_keys]
+
+        return new_entries
+        
+
+
+
     def create_table(self, table_name: str, model : KeyedModel, remote_id: Optional[str] = None):
         """
         Creates a new table in the database.
