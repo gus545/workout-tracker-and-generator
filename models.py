@@ -2,6 +2,10 @@ from pydantic import BaseModel, model_validator
 from typing import Optional
 from typing import List
 from abc import ABC, abstractmethod
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class KeyedModel(BaseModel):
     """

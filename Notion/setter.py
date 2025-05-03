@@ -1,3 +1,9 @@
+import logging
+from notion_client.errors import APIResponseError
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Setter:
     def __init__(self, notion_client):
         self.notion_client = notion_client

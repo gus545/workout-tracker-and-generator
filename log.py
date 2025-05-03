@@ -15,7 +15,7 @@ def initialize_logger():
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
     )
-    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
 
     # Set up the file handler
     logger.addHandler(initialize_file_handler())

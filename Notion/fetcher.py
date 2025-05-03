@@ -1,5 +1,10 @@
 from notion_client import Client
 import os
+import datetime
+from typing import Union
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Fetcher:
     def __init__(self, notion_client):

@@ -2,6 +2,9 @@ from tinydb import TinyDB, Query
 from datetime import datetime
 from typing import Optional, List, Union
 from models import KeyedModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Database manager class DatabaseManager:
 class DatabaseManager:

@@ -1,6 +1,9 @@
 from models import KeyedModel, WorkoutSet, Exercise
 from functools import singledispatch
 from typing import Any, Iterable, Union
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_parsing_function(model: KeyedModel):
     """
