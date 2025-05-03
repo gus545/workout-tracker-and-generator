@@ -62,8 +62,9 @@ def parse_set_data(data : dict) -> dict:
         "reps": set_data.get("Reps", {}).get("number"),
         "exercise_id": set_data.get("Exercise Reference", {}).get("relation", [{}])[0].get("id", {}),
         "set_number": set_data.get("Set #", {}).get("number"),
-        "date": data.get("properties", {}).get("Date", {}).get("date", {}).get("start"),
-        "page_id": data.get("id")
+        "date": set_data.get("Date", {}).get("date", {}).get("start"),
+        "page_id": data.get("id"),
+        "exercise_notes": extract_text(set_data.get("Notes", {}).get("rich_text", [{}]))
     }
 
     set = WorkoutSet(**set_data)
