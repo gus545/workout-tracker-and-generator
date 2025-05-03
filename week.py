@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from api_manager import API_Manager
+from Notion.fetcher import Fetcher
 
 class Week:
 
