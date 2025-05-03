@@ -47,6 +47,59 @@ class Exercise(KeyedModel):
 
     def get_composite_key():
         return ['id']
+    def to_notion_format(self):
+        return{
+            "Name": {
+                "title": [
+                    {
+                        "text": {
+                            "content": self.name
+                        }
+                    }
+                ]
+            },
+            "Category": {
+                "select": {
+                    "name": self.category
+                }
+            },
+            "Equipment": {
+                "select": {
+                    "name": self.equipment
+                }
+            },
+            "Force": {
+                "select": {
+                    "name": self.force
+                }
+            },
+            "Level": {
+                "select": {
+                    "name": self.level
+                }
+            },
+            "Mechanic": {
+                "select": {
+                    "name": self.mechanic
+                }
+            },
+            "Primary Muscles":{
+                "multi_select": [
+                    {
+                        "name": muscle
+                    } for muscle in self.primary_muscles
+                ]
+            },
+            "Secondary Muscles": {
+                "multi_select": [
+                    {
+                        "name": muscle
+                    } for muscle in self.secondary_muscles
+                ]
+            }
+        }
+
+        
 
 class WorkoutSet(KeyedModel):
     """
@@ -66,9 +119,48 @@ class WorkoutSet(KeyedModel):
     exercise_id: str
     set_number: int
     date: str
-    page_id: str
+    page_id: Optional[str] = None
+    exercise_notes: str
     def get_composite_key():
         return ['date', 'set_number', 'exercise_id']
+    def to_notion_format(self):
+        return {
+            "Date":{
+                "date": {
+                    "start": self.date
+                }
+            },
+            "Set #": {
+                "number": self.set_number
+            },
+            "Reps": {
+                "number": self.reps
+            },
+            "Weight": {
+                "number": self.weight
+            },
+            "Exercise Reference": {
+                "relation": [
+                    {
+                        "id": self.exercise_id
+                    }
+                ]
+            },
+            "Workout Title": {
+                "select": {
+                    "name": self.workout_name
+                }
+            },
+            "Notes": {
+                "rich_text": [
+                    {
+                        "text": {
+                            "content": self.exercise_notes
+                        }
+                    }
+                ]
+            }
+        }
 
 class Workout(KeyedModel):
     """
