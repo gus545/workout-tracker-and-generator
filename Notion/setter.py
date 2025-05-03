@@ -7,6 +7,23 @@ logger = logging.getLogger(__name__)
 class Setter:
     def __init__(self, notion_client):
         self.notion_client = notion_client
+
+    def add_page(self, page_data, database_id):
+        """
+        Function to add a page to Notion.
+
+        Args:
+            page_data (dict): The data of the page to add.
+        """
+        try:
+            response = self.notion_client.pages.create(parent={"database_id": database_id}, properties=page_data)
+            return response['id']
+
+        except APIResponseError as e:
+            logger.error(f"Failed to add page: {page_data}.  Error: {e}")
+            raise
+        except Exception as e:
+            raise RuntimeError
     def set_1RM_reference(self, one_rm_entry):
         """
         Function to set the 1RM reference for a given exercise in Notion.
