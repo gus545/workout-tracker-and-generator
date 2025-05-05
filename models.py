@@ -12,7 +12,7 @@ class KeyedModel(BaseModel):
     Abstract base class for models with a composite key.
     """
     @abstractmethod
-    def get_composite_key():
+    def get_key():
         """
         Abstract method to get the composite key of the model.
         """
@@ -45,7 +45,7 @@ class Exercise(KeyedModel):
     primary_muscles: List[str]
     secondary_muscles: List[str]
 
-    def get_composite_key():
+    def get_key():
         return ['id']
     def to_notion_format(self):
         return{
@@ -121,7 +121,7 @@ class WorkoutSet(KeyedModel):
     date: str
     page_id: Optional[str] = None
     exercise_notes: str
-    def get_composite_key():
+    def get_key():
         return ['date', 'set_number', 'exercise_id']
     def to_notion_format(self):
         return {
