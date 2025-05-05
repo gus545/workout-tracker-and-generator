@@ -123,7 +123,7 @@ class DatabaseManager:
             self.metadata_table.insert({
                 'table_name' : table_name,
                 'table_model': model.model_json_schema(),
-                'composite_key': model.get_composite_key(),
+                'composite_key': model.get_key(),
                 'remote_id': remote_id,
                 'synced_at': None,
                 'created_at': datetime.now().isoformat(),
@@ -131,6 +131,44 @@ class DatabaseManager:
                 })
         else:
             logger.warning(f"Metadata for table '{table_name}' already exists.")
+
+    def filter_duplicates(self, table_name: str, entries : List[dict]):
+        """
+        Filters out duplicate entries from the specified table in the database.
+        """
+
+        table = self.get_table(table_name)
+
+        existing_entries = table.all()
+        existing_keys = set()
+        composite_key_values = self.get_composite_key_values(table_name)
+
+        for entry in existing_entries:
+            try:
+                existing_keys.add(self.build_composite_key(composite_key_values, entry))
+            except CompositeKeyError as e:
+                log_error(logger, e)
+                raise
+
+        to_insert = []
+        failed_entries = []
+
+        for entry in entries:
+            try:
+                composite_key = self.build_composite_key(composite_key_values, entry)
+            except CompositeKeyError as e:
+                log_error(logger, e)
+                failed_entries.append(entry)
+                continue
+                
+            if composite_key not in existing_keys:
+                to_insert.append(entry)
+                existing_keys.add(composite_key)
+            else:
+                logger.debug(f"Duplicate entry found for {composite_key}. Entry not added.")
+        return to_insert, failed_entries
+
+        
 
     def add(self, table_name: str, entries : Union[List[dict], dict]):
         """
