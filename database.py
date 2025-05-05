@@ -142,6 +142,7 @@ class DatabaseManager:
 
         to_insert = []
         failed_entries = []
+        dupe_entries = []
 
         for entry in entries:
             try:
@@ -154,8 +155,9 @@ class DatabaseManager:
                 to_insert.append(entry)
                 existing_keys.add(composite_key)
             else:
+                dupe_entries.append(entry)
                 logger.debug(f"Duplicate entry found for {composite_key}. Entry not added.")
-        return to_insert, failed_entries
+        return to_insert, failed_entries, dupe_entries
 
         
 
@@ -191,7 +193,7 @@ class DatabaseManager:
         # Remove placeholder if exists
         table.remove(Query()._init == True)
 
-        to_insert, failed = self.filter_duplicates(table_name, entries)
+        to_insert, failed, dupes = self.filter_duplicates(table_name, entries)
         
         if to_insert:
             table.insert_multiple(to_insert)
@@ -200,7 +202,8 @@ class DatabaseManager:
         else:
             logger.info("No new entries to insert.")     
         if failed:
-            logger.error(f"Failed to insert {len(failed)} entries into '{table_name}' table.") 
+            logger.error(f"Failed to insert {len(failed)} entries into '{table_name}' table.")
+        return dupes, failed 
         
     def get_composite_key_values(self, table_name: str) -> List[str]:
         """
