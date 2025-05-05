@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Union
 from models import KeyedModel
 import logging
-
+from errors import TableNotFoundError, MetadataNotFoundError, CompositeKeyError, DatabaseError, log_error
 logger = logging.getLogger(__name__)
 
 # Database manager class DatabaseManager:
@@ -40,20 +40,18 @@ class DatabaseManager:
             ValueError: If the entry is empty, table does not exist, or entry is missing key requirements.
         """
         if not entry:
-            raise ValueError("Entry cannot be empty.")
+            raise DatabaseError("Entry cannot be empty.")
         
         table = self.get_table(table_name)
 
     
         key_fields = self.get_composite_key_values(table_name)
         key_values = {field: entry[field] for field in key_fields}
-        try:
-            query = self.get_query_from_composite_key(key_values)
-        except ValueError as e:
-            raise
+        query = self.get_query_from_composite_key(key_values)
+
              
         if not query:
-            raise ValueError("Query is empty. Possibly missing key fields in entry.")
+            raise DatabaseError("Query is empty. Possibly missing key fields in entry.")
         
         table.update(entry, query)
         logger.info(f"Updated entry in '{table_name}' table.")
@@ -62,7 +60,7 @@ class DatabaseManager:
         query = None
         for key, value in key_values.items():
             if value is None:
-                raise ValueError(f"Missing value for composite key field: {key}")
+                raise CompositeKeyError(f"Missing value for composite key field: {key}")
             condition = Query()[key] == value
             query = condition if query is None else query & condition
         return query
@@ -114,10 +112,6 @@ class DatabaseManager:
         Creates metadata for a table if it doesn't exist.
         """
         Metadata = Query()
-        
-        # Check if model is valid
-        if not issubclass(model, KeyedModel):
-            raise ValueError("Model must be an instance of KeyedModel")
 
         if not self.metadata_table.contains(Metadata.table_name == table_name):
             self.metadata_table.insert({
@@ -144,11 +138,7 @@ class DatabaseManager:
         composite_key_values = self.get_composite_key_values(table_name)
 
         for entry in existing_entries:
-            try:
-                existing_keys.add(self.build_composite_key(composite_key_values, entry))
-            except CompositeKeyError as e:
-                log_error(logger, e)
-                raise
+            existing_keys.add(self.build_composite_key(composite_key_values, entry))
 
         to_insert = []
         failed_entries = []
@@ -157,7 +147,6 @@ class DatabaseManager:
             try:
                 composite_key = self.build_composite_key(composite_key_values, entry)
             except CompositeKeyError as e:
-                log_error(logger, e)
                 failed_entries.append(entry)
                 continue
                 
@@ -189,7 +178,7 @@ class DatabaseManager:
             entries = [entries]
 
         if not self.metadata_table.get(Query().table_name == table_name):
-            raise ValueError(f"Metadata for table '{table_name}' not found.")
+            raise MetadataNotFoundError(f"Metadata for table '{table_name}' not found.")
         
         # Exit if no entries to add
         if not entries:
@@ -202,38 +191,25 @@ class DatabaseManager:
         # Remove placeholder if exists
         table.remove(Query()._init == True)
 
-        existing_entries = table.all()
-        existing_keys = set()
-        composite_key_values = self.get_composite_key_values(table_name)
-
-        for entry in existing_entries:
-            try:
-                existing_keys.add(self.build_composite_key(composite_key_values, entry))
-            except ValueError as e:
-                logger.error(f"Invalid entry: {entry}")
-                raise
-
-        to_insert = []
-
-        for entry in entries:
-            composite_key = self.build_composite_key(composite_key_values, entry)
-            if composite_key not in existing_keys:
-                to_insert.append(entry)
-                existing_keys.add(composite_key)
-            # else:
-            #     print(f"Duplicate entry found for {composite_key}. Entry not added.")
+        to_insert, failed = self.filter_duplicates(table_name, entries)
         
         if to_insert:
             table.insert_multiple(to_insert)
             self._update_timestamp(table_name)
-            print(f"Inserted {len(to_insert)} new entries into '{table_name}' table.")
+            logger.info(f"Inserted {len(to_insert)} new entries into '{table_name}' table.")
         else:
-            print("No new entries to insert.")      
+            logger.info("No new entries to insert.")     
+        if failed:
+            logger.error(f"Failed to insert {len(failed)} entries into '{table_name}' table.") 
         
     def get_composite_key_values(self, table_name: str) -> List[str]:
         """
         Retrieves the composite key values for the specified table.
         """
+        
+        if table_name not in self.db.tables():
+            raise TableNotFoundError(table_name, context={"available_tables": list(self.db.tables())})
+
         return self.metadata_table.get(Query().table_name == table_name)['composite_key']
         
     def build_composite_key(self, composite_key: List[str], entry: dict) -> str:
@@ -242,7 +218,7 @@ class DatabaseManager:
         """
         missing_keys = [key for key in composite_key if key not in entry]
         if missing_keys:
-            raise ValueError(f"Missing keys in entry: {missing_keys}")
+            raise CompositeKeyError(f"Missing keys in entry: {missing_keys}", context={"entry_keys": entry.keys()})
         
         return "_".join([str(entry[key]) for key in composite_key])
     
@@ -250,42 +226,46 @@ class DatabaseManager:
         """
         Updates the timestamp of the specified table in the metadata.
         """
+        if table_name not in self.db.tables():
+            raise TableNotFoundError(table_name, context={"available_tables": list(self.db.tables())})
+        
         self.metadata_table.update({'updated_at': datetime.now().isoformat()}, Query().table_name == table_name)
-        print(f"Updated timestamp for table '{table_name}'.")
+        logger.info(f"Updated timestamp for table '{table_name}'.")
 
     def get_last_sync_time(self, table_name: str) -> Optional[datetime]:
-        """
-        Retrieves the last sync time for a table by its remote ID.
 
-        args: 
-            remote_id (str): The remote ID of the table.
+        if table_name not in self.db.tables():
+            raise TableNotFoundError(table_name, context={"available_tables": list(self.db.tables())})
 
-        returns:
-            datetime: The last sync time.
-
-        raises:
-            ValueError: If the table with the given remote ID is not found in the metadata.
-        """
         Metadata = Query()
         result = self.metadata_table.get(Metadata.table_name == table_name)
         
         if result:
             return result['synced_at']
         else:
-            raise ValueError(f"Table with name '{table_name}' not found in metadata.")
+            raise MetadataNotFoundError(table_name, context= {self.metadata_table.all()})
 
     def update_last_sync_time(self, table_name: str):
         """
         Updates the last sync time for a table by its remote ID.
         """
+        if table_name not in self.db.tables():
+            raise TableNotFoundError(table_name, context={"available_tables": list(self.db.tables())})
+        
+        synced_at = datetime.now().isoformat()
+        
         Metadata = Query()
-        self.metadata_table.update({'synced_at': datetime.now().isoformat()}, Metadata.table_name == table_name)
-        print(f"Updated last sync time for table with name '{table_name}'.")
+        updated = self.metadata_table.update({'synced_at': synced_at}, Metadata.table_name == table_name)
+
+        if updated == []:
+            logger.warning(f"No metadata entry found for table '{table_name}' to update sync time.")
+        else:
+            logger.info(f"Updated sync time for table '{table_name}' to {synced_at}.")
 
     def get_table(self, table_name: str):
         """
         Returns the table if it exists, otherwise raises a ValueError.
         """
         if table_name not in self.db.tables():
-            raise ValueError(f"Table '{table_name}' does not exist.")
+            raise TableNotFoundError(table_name, context={"available_tables": list(self.db.tables())})
         return self.db.table(table_name)
