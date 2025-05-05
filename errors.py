@@ -10,6 +10,7 @@ class SyncError(Exception):
 
 class APIError(SyncError): pass
 class ModelError(SyncError): pass
+class ParsingError(SyncError): pass
 class DatabaseError(SyncError): pass
 class TableNotFoundError(DatabaseError): pass
 class MetadataNotFoundError(DatabaseError): pass

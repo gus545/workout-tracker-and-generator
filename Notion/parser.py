@@ -2,6 +2,8 @@ from models import KeyedModel, WorkoutSet, Exercise
 from functools import singledispatch
 from typing import Any, Iterable, Union
 import logging
+from errors import ModelError, ParsingError
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +39,15 @@ def parse_data(data: Union[Any, Iterable], model: KeyedModel) -> dict:
     # Get the parsing function based on the model type
     parse_func = get_parsing_function(model)
 
+
     if isinstance(data, dict):
         return parse_func(data)
     elif isinstance(data, Iterable):
         return [parse_func(item) for item in data]
+    
+    # Nothing to parse
+    logger.info("No data to parse.")
+    return []
 
 
 
@@ -54,20 +61,25 @@ def parse_set_data(data : dict) -> dict:
     Returns:
         dict: Parsed set data.
     """
-
-    set_data = data.get("properties", {})
-    set_data = {
-        "workout_name": data.get("properties", {}).get("Workout Title", {}).get("select", {}).get("name"),
-        "weight": set_data.get("Weight", {}).get("number"),
-        "reps": set_data.get("Reps", {}).get("number"),
-        "exercise_id": set_data.get("Exercise Reference", {}).get("relation", [{}])[0].get("id", {}),
-        "set_number": set_data.get("Set #", {}).get("number"),
-        "date": set_data.get("Date", {}).get("date", {}).get("start"),
-        "page_id": data.get("id"),
-        "exercise_notes": extract_text(set_data.get("Notes", {}).get("rich_text", [{}]))
-    }
-
-    set = WorkoutSet(**set_data)
+    try:
+        set_data = data.get("properties", {})
+        set_data = {
+            "workout_name": data.get("properties", {}).get("Workout Title", {}).get("select", {}).get("name"),
+            "weight": set_data.get("Weight", {}).get("number"),
+            "reps": set_data.get("Reps", {}).get("number"),
+            "exercise_id": set_data.get("Exercise Reference", {}).get("relation", [{}])[0].get("id", {}),
+            "set_number": set_data.get("Set #", {}).get("number"),
+            "date": set_data.get("Date", {}).get("date", {}).get("start"),
+            "page_id": data.get("id"),
+            "exercise_notes": extract_text(set_data.get("Notes", {}).get("rich_text", [{}]))
+        }
+    except Exception as e:
+        raise ParsingError(f"Failed to parse data.", context={"data": data, "error": str(e)}, original_exception=e)
+    
+    try:
+        set = WorkoutSet(**set_data)
+    except ValidationError as e:
+        raise ModelError(f"Parsed data did not match model schema", context=e.errors())
 
     return set.model_dump()
 
@@ -81,41 +93,48 @@ def parse_exercise_data(data : dict) -> dict:
     Returns:
         dict: Parsed exercise data.
     """
-    properties = data.get("properties", {})
+    try:
+        properties = data.get("properties", {})
 
-    instructions = extract_text(properties.get("Instructions", {}).get("rich_text", []))
-    force = extract_select(properties.get("Force", {}).get("select"))
-    equipment = extract_select(properties.get("Equipment", {}).get("select"))
-    mechanic = extract_select(properties.get("Mechanic", {}).get("select"))
-    level = extract_select(properties.get("Level", {}).get("select"))
-    category = extract_select(properties.get("Category", {}).get("select"))
+        instructions = extract_text(properties.get("Instructions", {}).get("rich_text", []))
+        force = extract_select(properties.get("Force", {}).get("select"))
+        equipment = extract_select(properties.get("Equipment", {}).get("select"))
+        mechanic = extract_select(properties.get("Mechanic", {}).get("select"))
+        level = extract_select(properties.get("Level", {}).get("select"))
+        category = extract_select(properties.get("Category", {}).get("select"))
 
-    # Handle name with fallback
-    title_block = properties.get("Name", {}).get("title", [])
-    name = (
-        title_block[0].get("text", {}).get("content")
-        if title_block and isinstance(title_block[0], dict)
-        else "Unnamed Exercise"
-    )
+        # Handle name with fallback
+        title_block = properties.get("Name", {}).get("title", [])
+        name = (
+            title_block[0].get("text", {}).get("content")
+            if title_block and isinstance(title_block[0], dict)
+            else "Unnamed Exercise"
+        )
 
-    primary_muscles = [d.get("name") for d in properties.get("Primary Muscles", {}).get("multi_select", [])]
-    secondary_muscles = [d.get("name") for d in properties.get("Secondary Muscles", {}).get("multi_select", [])]
+        primary_muscles = [d.get("name") for d in properties.get("Primary Muscles", {}).get("multi_select", [])]
+        secondary_muscles = [d.get("name") for d in properties.get("Secondary Muscles", {}).get("multi_select", [])]
 
-    exercise_data = {
-        "name": name,
-        "id": data.get("id"),
-        "category": category,
-        "equipment": equipment,
-        "force": force,
-        "level": level,
-        "mechanic": mechanic,
-        "instructions": instructions,
-        "primary_muscles": primary_muscles,
-        "secondary_muscles": secondary_muscles,
-    }
-
-    exercise = Exercise(**exercise_data)
-    return exercise.model_dump()
+        exercise_data = {
+            "name": name,
+            "id": data.get("id"),
+            "category": category,
+            "equipment": equipment,
+            "force": force,
+            "level": level,
+            "mechanic": mechanic,
+            "instructions": instructions,
+            "primary_muscles": primary_muscles,
+            "secondary_muscles": secondary_muscles,
+        }
+    except Exception as e:
+        raise ParsingError(f"Failed to parse data.", context={"data": data, "error": str(e)}, original_exception=e)
+    
+    try:
+        exercise = Exercise(**exercise_data)
+        return exercise.model_dump()
+    except ValidationError as e:
+        raise ModelError(f"Parsed data did not match model schema", context=e.errors())
+        
 
     
 def extract_text(block: list[dict]) -> str:
