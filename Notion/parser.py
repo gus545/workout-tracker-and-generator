@@ -1,4 +1,4 @@
-from models import KeyedModel, WorkoutSet, Exercise
+from models import KeyedModel, CompletedSet, Exercise
 from functools import singledispatch
 from typing import Any, Iterable, Union
 import logging
@@ -17,7 +17,7 @@ def get_parsing_function(model: KeyedModel):
     Returns:
         function: The parsing function.
     """
-    if model == WorkoutSet:
+    if model == CompletedSet:
         return parse_set_data
     elif model == Exercise:
         return parse_exercise_data
@@ -77,7 +77,7 @@ def parse_set_data(data : dict) -> dict:
         raise ParsingError(f"Failed to parse data.", context={"data": data, "error": str(e)}, original_exception=e)
     
     try:
-        set = WorkoutSet(**set_data)
+        set = CompletedSet(**set_data)
     except ValidationError as e:
         raise ModelError(f"Parsed data did not match model schema", context=e.errors())
 

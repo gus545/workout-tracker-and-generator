@@ -4,7 +4,7 @@ from datetime import datetime
 from Notion.fetcher import Fetcher
 from Notion.parser import parse_data
 from database import DatabaseManager
-from models import KeyedModel, Exercise, WorkoutSet
+from models import KeyedModel, Exercise, CompletedSet
 from dotenv import load_dotenv
 from Notion.setter import Setter
 import logging
@@ -23,7 +23,7 @@ class SyncService:
         self.database = database
         self.model_registry = {
             "exercise": Exercise,
-            "workout_log": WorkoutSet,
+            "workout_log": CompletedSet,
         }
         load_dotenv()
         
