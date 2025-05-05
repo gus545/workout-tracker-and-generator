@@ -1,7 +1,7 @@
 from tinydb import TinyDB, Query
 from datetime import datetime
 from typing import Optional, List, Union
-from models import KeyedModel
+from app.models import KeyedModel
 import logging
 from errors import TableNotFoundError, MetadataNotFoundError, CompositeKeyError, DatabaseError, log_error
 logger = logging.getLogger(__name__)
