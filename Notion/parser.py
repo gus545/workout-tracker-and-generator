@@ -78,6 +78,7 @@ def parse_set_data(data : dict) -> dict:
     
     try:
         set = CompletedSet(**set_data)
+        set = CompletedSet(**set_data)
     except ValidationError as e:
         raise ModelError(f"Parsed data did not match model schema", context=e.errors())
 

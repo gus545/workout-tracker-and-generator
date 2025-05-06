@@ -108,6 +108,14 @@ class BaseSetModel(BaseModel):
     exercise_id: str
     set_number: int
 
+class BaseSetModel(BaseModel):
+    """
+    Abstract base class for sets.
+    """
+    workout_name: str
+    exercise_id: str
+    set_number: int
+
 class CompletedSet(BaseSetModel,KeyedModel):
     """
     Class representing a set of an exercise.
@@ -168,6 +176,7 @@ class CompletedSet(BaseSetModel,KeyedModel):
 
 class PlannedSet(BaseSetModel):
     """
+    Class representing a form for creating a set.
     Class representing a form for creating a set.
     """
     expected_weight: float

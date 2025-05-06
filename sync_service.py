@@ -24,6 +24,7 @@ class SyncService:
         self.model_registry = {
             "exercise": Exercise,
             "workout_log": CompletedSet,
+            "workout_log": CompletedSet,
         }
         load_dotenv()
         
