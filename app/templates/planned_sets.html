@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ sets[0].workout_name}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>{{ sets[0].workout_name}}</h1>
+    <a href="{{ url_for('log_all_sets', sets=sets) }}">Log All Sets</a>
+    {% for s in sets %}
+        <div>
+            <h3>{{ s.exercise_name }} - Set {{ s.set_number +1 }}</h3>
+            <p>{{ s.description }} — {{ s.expected_weight }} lbs for {{ s.expected_reps }} reps</p>
+            <a href="{{ url_for('log_set', exercise_id=s.exercise_id) }}">Log Sets</a>
+        </div>
+    {% endfor %}
+</body>
+</html>
