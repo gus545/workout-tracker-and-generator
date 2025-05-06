@@ -1,4 +1,6 @@
 # app.py
+
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 from app.models import PlannedSet, CompletedSet
 from datetime import date
@@ -9,7 +11,10 @@ import os
 import json
 from database import DatabaseManager
 
+app = Flask(__name__)
+
 db = DatabaseManager()
+
 
 load_dotenv()
 
@@ -33,7 +38,7 @@ def index():
 
 @app.route('/log/<exercise_id>', methods=['GET', 'POST'])
 def log_set(exercise_id):
-    planned = next((s for s in planned_sets if s.exercise_id == exercise_id), None)
+    planned = next((s for s in planned_sets if s["exercise_id"] == exercise_id), None)
     if not planned:
         return "Set not found", 404
 
@@ -41,8 +46,8 @@ def log_set(exercise_id):
         # Capture form input
         completed = CompletedSet(
             workout_name=planned.workout_name,
-            actual_weight=float(request.form['actual_weight']),
-            actual_reps=int(request.form['actual_reps']),
+            weight=float(request.form['actual_weight']),
+            reps=int(request.form['actual_reps']),
             exercise_id=exercise_id,
             exercise_notes=request.form.get('notes', ''),
             set_number=planned.set_number,
