@@ -1,6 +1,6 @@
 from notion_client import Client
 import logging
-import log
+import app.core.log as log
 
 def initialize_notion_client(api_key):
     """

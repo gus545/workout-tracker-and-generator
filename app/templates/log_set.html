@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log Set</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h2>Log Set: {{ planned.workout_name }}</h2>
+    <form method="POST">
+        <label>Actual Weight</label><br>
+        <input type="number" name="actual_weight" step="0.1" required><br><br>
+
+        <label>Actual Reps</label><br>
+        <input type="number" name="actual_reps" required><br><br>
+
+        <label>Notes</label><br>
+        <textarea name="notes"></textarea><br><br>
+
+        <button type="submit">Log Set</button>
+    </form>
+</body>
+</html>

@@ -1,9 +1,10 @@
 from tinydb import TinyDB, Query
 from datetime import datetime
 from typing import Optional, List, Union
-from models import KeyedModel
+from app.models.sets import KeyedModel
 import logging
-from errors import TableNotFoundError, MetadataNotFoundError, CompositeKeyError, DatabaseError, log_error
+from app.core.errors import TableNotFoundError, MetadataNotFoundError, CompositeKeyError, DatabaseError, log_error
+import os
 logger = logging.getLogger(__name__)
 
 # Database manager class DatabaseManager:
@@ -16,6 +17,9 @@ class DatabaseManager:
         """
         Initializes the DatabaseManager with the specified database path.
         """
+
+        os.makedirs("data/database", exist_ok=True)
+        
         self.db = TinyDB(db_path)
 
     @property
@@ -24,6 +28,19 @@ class DatabaseManager:
         Returns the metadata table from the database.
         """
         return self.db.table('metadata')
+
+    def get(self, table_name: str, filters: dict) -> List[dict]:
+        table = self.get_table(table_name)
+        query = self.get_query_from_composite_key(filters)
+        results = table.search(query)
+        return results
+
+    def delete(self, table_name: str, key_dict: dict) -> bool:
+        table = self.get_table(table_name)
+        query = self.get_query_from_composite_key(key_dict)
+        removed = table.remove(query)
+        return bool(removed)
+
 
     def update(self, table_name: str, entry: dict):
         """
@@ -53,8 +70,12 @@ class DatabaseManager:
         if not query:
             raise DatabaseError("Query is empty. Possibly missing key fields in entry.")
         
-        table.update(entry, query)
-        logger.info(f"Updated entry in '{table_name}' table.")
+
+        updated = table.update(entry, query)
+        if updated:
+            logger.info(f"Updated entry in '{table_name}' table.")
+            return entry
+        return None
 
     def get_query_from_composite_key(self, key_values: dict):
         query = None
@@ -193,6 +214,7 @@ class DatabaseManager:
         # Remove placeholder if exists
         table.remove(Query()._init == True)
 
+        print(entries)
         to_insert, failed, dupes = self.filter_duplicates(table_name, entries)
         
         if to_insert:
@@ -203,7 +225,7 @@ class DatabaseManager:
             logger.info("No new entries to insert.")     
         if failed:
             logger.error(f"Failed to insert {len(failed)} entries into '{table_name}' table.")
-        return dupes, failed 
+        return {"inserted": to_insert, "duplicates": dupes, "failed": failed}
         
     def get_composite_key_values(self, table_name: str) -> List[str]:
         """

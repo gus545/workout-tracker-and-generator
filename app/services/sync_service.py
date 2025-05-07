@@ -1,16 +1,16 @@
 import shutil
 import os
 from datetime import datetime
-from Notion.fetcher import Fetcher
-from Notion.parser import parse_data
-from database import DatabaseManager
-from models import KeyedModel, Exercise, WorkoutSet
+from notion.fetcher import Fetcher
+from notion.parser import parse_data
+from app.db.manager import DatabaseManager
+from app.models.sets import KeyedModel, Exercise, CompletedSet
 from dotenv import load_dotenv
-from Notion.setter import Setter
+from notion.setter import Setter
 import logging
 from notion_client.errors import APIResponseError
 import traceback
-from errors import TableNotFoundError, CompositeKeyError, DatabaseError, SyncError, log_error
+from app.core.errors import TableNotFoundError, CompositeKeyError, DatabaseError, SyncError, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class SyncService:
         self.database = database
         self.model_registry = {
             "exercise": Exercise,
-            "workout_log": WorkoutSet,
+            "workout_log": CompletedSet,
         }
         load_dotenv()
         
@@ -57,12 +57,16 @@ class SyncService:
             
         db_id = db_info["id"]
         db_name = db_info["name"]  
+        
+        logger.info(f"Syncing {db_name} from Notion database...")
 
         if db_name not in self.model_registry:
             logger.error(f"No model found for {db_name}.")
             return
         
         model = self.model_registry[db_name]
+
+        print(self.database.db.tables())
 
         if db_name not in self.database.db.tables():
             logger.info(f"Creating local table for {db_name}...")
@@ -116,6 +120,9 @@ class SyncService:
         Returns:
             None
         """
+
+        logger.info(f"Syncing {db_info['name']} to Notion database...")
+
         try:
             db_id = db_info["id"]
             db_name = db_info["name"]

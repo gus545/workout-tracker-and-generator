@@ -3,6 +3,7 @@ from typing import Optional
 from typing import List
 from abc import ABC, abstractmethod
 import logging
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,15 @@ class Exercise(KeyedModel):
             }
         }
 
-        
+class BaseSetModel(BaseModel):
+    """
+    Abstract base class for sets.
+    """
+    workout_name: str
+    exercise_id: str
+    set_number: int
 
-class WorkoutSet(KeyedModel):
+class CompletedSet(BaseSetModel,KeyedModel):
     """
     Class representing a set of an exercise.
 
@@ -113,11 +120,8 @@ class WorkoutSet(KeyedModel):
         set_number (int): The number of the set in the workout.
         date (str): The date of the workout.
     """
-    workout_name : str
     weight: Optional[float] = None
     reps: int
-    exercise_id: str
-    set_number: int
     date: str
     page_id: Optional[str] = None
     exercise_notes: str
@@ -162,32 +166,11 @@ class WorkoutSet(KeyedModel):
             }
         }
 
-class Workout(KeyedModel):
+class PlannedSet(BaseSetModel):
     """
-    Class representing a workout session.
-    
-    Attributes:
-        date (str): The date of the workout.
-        sets (List[Set]): A list of sets performed during the workout.
+    Class representing a form for creating a set.
     """
-    workout_id: str
-    workout_name: str
-    date: str
-    sets: List[WorkoutSet]
+    expected_weight: float
+    expected_reps: Union[int,str]
+    description: str
 
-    @model_validator(mode="after")
-    def validate_sets(self):
-        """
-        Validate the sets in the workout.
-        
-        Args:
-            cls: The class itself.
-            values: The values of the attributes.
-        
-        Returns:
-            The validated values.
-        """
-        for s in self.sets:
-            if s.date != self.date:
-                raise ValueError(f"Set date {s.date} does not match workout date {self.date}")
-        return self
