@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class KeyedModel(BaseModel, ABC):
     @abstractmethod
-    def get_key(self) -> List[str]:
+    def get_key() -> List[str]:
         pass
 
 
@@ -23,7 +23,7 @@ class Exercise(KeyedModel):
     primary_muscles: List[str]
     secondary_muscles: List[str]
 
-    def get_key(self) -> List[str]:
+    def get_key() -> List[str]:
         return ['id']
 
     def to_notion_format(self) -> dict:
@@ -52,7 +52,7 @@ class CompletedSet(BaseSetModel, KeyedModel):
     page_id: Optional[str] = None
     exercise_notes: str
 
-    def get_key(self) -> List[str]:
+    def get_key() -> List[str]:
         return ['date', 'set_number', 'exercise_id']
 
     def to_notion_format(self) -> dict:
@@ -77,5 +77,5 @@ class PlannedWorkout(KeyedModel):
     name: str
     sets: List[PlannedSet]
 
-    def get_key(self) -> List[str]:
+    def get_key() -> List[str]:
         return ['name']
